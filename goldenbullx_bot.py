@@ -2,11 +2,12 @@
 import logging
 import random
 import csv
+import os
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
 # === CONFIG ===
-BOT_TOKEN = 7673882459:AAEoPqWVa_8yejLg_TW3Lzgx7FkB_EIGqA8
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 # === LOGGING SETUP ===
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)

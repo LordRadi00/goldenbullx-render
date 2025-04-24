@@ -1,4 +1,3 @@
-
 import logging
 import random
 import csv
@@ -14,14 +13,21 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 # === FUNZIONE PRINCIPALE DI INVIO SEGNALE ===
 async def send_signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Seleziona una pair dinamica basata sul mercato
+    market_pair = "BTC/USDT"  # Puoi cambiare questa logica per un mercato dinamico (es. random o da una lista)
+
+    # Aggiungi un segnale di confidenza random per il trend
     confidence = round(random.uniform(85, 95), 2)
-    keyboard = [[InlineKeyboardButton("✅ CONFERMA LONG", callback_data=f"confirm_long_{confidence}")]]
+
+    # Crea il pulsante inline per confermare il trade
+    keyboard = [[InlineKeyboardButton(f"✅ CONFERMA LONG {market_pair}", callback_data=f"confirm_long_{confidence}_{market_pair}")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
+    # Costruisci il messaggio con la pair dinamica
     message = (
         "🐂 *Bullish Trend Detected*\n"
         f"🤖 Confidence AI: {confidence}%\n"
-        "📊 Pair: BTC/USDT\n"
+        f"📊 Pair: {market_pair}\n"
         "⏱ Timeframe: 2m\n\n"
         "👉 Vuoi eseguire l’operazione?"
     )
@@ -32,19 +38,29 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    if query.data.startswith("confirm_long_"):
-        confidence = query.data.split("_")[-1]
-        user = query.from_user.first_name
-        await query.edit_message_text(f"✅ Operazione LONG confermata da {user} (AI confidence: {confidence}%)")
+    # Estrai la confidenza e la pair dal callback data
+    data = query.data.split("_")
+    confidence = data[2]  # Confidence
+    market_pair = data[3]  # Pair di mercato
 
-        # Log in CSV
-        with open("trading_log.csv", mode="a", newline="") as file:
-            writer = csv.writer(file)
-            writer.writerow([user, "LONG", confidence])
+    user = query.from_user.first_name
+    await query.edit_message_text(f"✅ Operazione LONG confermat! (AI confidence: {confidence}%) per {market_pair}")
 
-# === COMANDO PER TEST ===
+    # Log in CSV: registra ogni conferma con dati aggiuntivi
+    with open("trading_log.csv", mode="a", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow([user, "LONG", market_pair, confidence])
+
+# === COMANDO PER TEST (Benvenuto motivante) ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Benvenuto in GoldenBullX. Scrivi /signal per ricevere un segnale AI.")
+    # Messaggio motivante al primo avvio
+    welcome_message = (
+        "🎉 Benvenuto in GoldenBullX! 🎉\n"
+        "Rimani in attesa per l'arrivo dei primi segnali di trading.\n"
+        "Preparati ad agire sui segnali AI in tempo reale!\n\n"
+        "👉 Scrivi /signal per ricevere il primo segnale."
+    )
+    await update.message.reply_text(welcome_message)
 
 # === MAIN ===
 app = ApplicationBuilder().token(BOT_TOKEN).build()

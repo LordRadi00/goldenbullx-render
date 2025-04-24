@@ -1,22 +1,21 @@
 import logging
 import random
 import os
-import websocket
-import json
-import pandas as pd
-import talib as ta
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 from apscheduler.schedulers.background import BackgroundScheduler
-from datetime import datetime
+import requests
+import pandas as pd
+import pandas_ta as ta  # Sostituire TA-Lib con pandas_ta
 
 # === CONFIG ===
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = "@your_telegram_channel_or_user"  # Replace with your Telegram chat or user ID
+CHAT_ID = "@GoldenBullX_Bot"  # Replace with your Telegram chat or user ID
 
 # === LOGGING SETUP ===
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
+# === Dati di mercato tramite API (ad esempio Binance) ===
 # === Dati di mercato tramite WebSocket Bybit ===
 def on_message(ws, message):
     data = json.loads(message)
@@ -63,53 +62,80 @@ def process_data(pair, close_price):
     if len(close_prices[pair]) > 100:
         close_prices[pair].pop(0)
     
-    # Calcoliamo gli indicatori
-    df = pd.DataFrame(close_prices[pair], columns=["close"])
-    df['EMA50'] = ta.EMA(df['close'], timeperiod=50)
-    df['EMA21'] = ta.EMA(df['close'], timeperiod=21)
-    df['ATR'] = ta.ATR(df['close'], df['close'], df['close'], timeperiod=14)
-    df['ADX'] = ta.ADX(df['close'], df['close'], df['close'], timeperiod=14)
+   df = pd.DataFrame(data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'quote_asset_volume', 'number_of_trades', 'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'])
+    df['close'] = pd.to_numeric(df['close'])
+    df['high'] = pd.to_numeric(df['high'])
+    df['low'] = pd.to_numeric(df['low'])
     
-    # Genera il segnale
-    signal, confidence = generate_signal(df)
-    
-    if signal == "Bullish":
-        message = f"🐂 *Bullish Trend Detected*\n🤖 Confidence AI: {confidence}%\n📊 Pair: {pair}\n⏱ Timeframe: 2m"
-        send_telegram_signal(message)
+    return df
+
+# === FUNZIONE PER CALCOLARE GLI INDICATORI ===
+def calculate_indicators(data):
+    # Utilizziamo pandas_ta per calcolare gli indicatori
+    data['EMA50'] = ta.ema(data['close'], length=50)
+    data['EMA21'] = ta.ema(data['close'], length=21)
+    data['EMA34'] = ta.ema(data['close'], length=34)
+    data['ATR'] = ta.atr(data['high'], data['low'], data['close'], length=14)
+    data['ADX'] = ta.adx(data['high'], data['low'], data['close'], length=14)
+    return data
 
 # === FUNZIONE PER GENERARE IL SEGNALE ===
 def generate_signal(data):
     last_row = data.iloc[-1]
+    
+    # Calcoliamo il recent low (minimo recente) per il lookback
+    lookback = 2  # Impostiamo il lookback come nel Pine Script
+    recent_low = data['low'].iloc[-lookback:].min()
+    
+    # Condizione di ingresso LONG basata sulla tua strategia
     long_condition = (
-        last_row['close'] > last_row['EMA50'] and
-        last_row['ADX'] > 10 and
-        last_row['ATR'] > last_row['ATR'].rolling(window=20).mean()
+        last_row['close'] > recent_low and  # Prezzo sopra il recent low
+        last_row['close'] > last_row['EMA50'] and  # Prezzo sopra EMA 50
+        last_row['ADX'] > 10 and  # ADX maggiore di 10 per la forza del trend
+        last_row['ATR'] > last_row['ATR'].rolling(window=20).mean() and  # Volatilità alta (ATR)
+        (5 <= last_row.name.hour < 22)  # Orario tra 5:00 e 22:00 (considerando il time data)
     )
+
     if long_condition:
-        return "Bullish", round(random.uniform(85, 95), 2)
-    return "No Signal", 0
+        signal = "Bullish"
+        confidence = round(random.uniform(85, 95), 2)
+    else:
+        signal = "No Signal"
+        confidence = 0
+
+    return signal, confidence
 
 # === INVIO AUTOMATICO SEGNALE ===
-def send_telegram_signal(message):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    params = {
-        "chat_id": CHAT_ID,
-        "text": message
-    }
-    requests.get(url, params=params)
+async def send_signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Mercati BTC/USDT, ETH/USDT, SOL/USDT
+    symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT']
+    
+    for symbol in symbols:
+        data = get_market_data(symbol=symbol)  # Ottieni dati dal mercato
+        data = calculate_indicators(data)  # Calcola gli indicatori
+        signal, confidence = generate_signal(data)  # Genera il segnale
+        
+        if signal == "Bullish":
+            market_pair = symbol
+            message = (
+                f"🐂 *Bullish Trend Detected*\n"
+                f"🤖 Confidence AI: {confidence}%\n"
+                f"📊 Pair: {market_pair}\n"
+                "⏱ Timeframe: 2m\n\n"
+                "👉 Vuoi eseguire l’operazione?"
+            )
+            # Invia il segnale via Telegram
+            await update.message.reply_markdown(message)
 
 # === SCHEDULER PER ESEGUIRE OGNI 10 SECONDI ===
 scheduler = BackgroundScheduler()
-scheduler.add_job(process_data, 'interval', seconds=10)  # Controlla ogni 10 secondi
+scheduler.add_job(send_signal, 'interval', seconds=10)  # Controlla ogni 10 secondi
 scheduler.start()
 
 # === MAIN ===
-print("🔄 Connessione a Bybit WebSocket...")
-ws = websocket.WebSocketApp("wss://stream.bybit.com/v5/public/linear",
-                            on_open=on_open,
-                            on_message=on_message,
-                            on_error=on_error,
-                            on_close=on_close)
+app = ApplicationBuilder().token(BOT_TOKEN).build()
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CallbackQueryHandler(button_handler))
 
-# Esegui il WebSocket
-ws.run_forever()
+print("🤖 GoldenBullX attivo.")
+app.run_polling()

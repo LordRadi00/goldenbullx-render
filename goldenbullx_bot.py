@@ -100,14 +100,15 @@ def on_message(ws, message):
             process_data(pair, close_p, high_p, low_p)
 
 def on_open(ws):
-  print("✅ Connessione aperta.")
+    print("✅ Connessione aperta.")
     pairs = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
     subscribe = {
-      "op": "subscribe",
-      "args": [f"candle.3.{p}" for p in pairs]
+        "op": "subscribe",
+        "args": [f"candle.3.{p}" for p in pairs]
     }
     ws.send(json.dumps(subscribe))
     print(f"📡 Sottoscritto ai candles 3m per: {', '.join(pairs)}")
+
 
 def on_error(ws, error):
     logging.error("WebSocket error: %s", error)

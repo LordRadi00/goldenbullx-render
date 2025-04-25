@@ -88,18 +88,26 @@ def process_data(pair, close_p, high_p, low_p):
 # === CALLBACK WebSocket ===
 def on_message(ws, message):
     msg = json.loads(message)
-    for item in msg.get('data', []):
-        k = item['k']
-        process_data(
-            item['s'],
-            float(k['c']),
-            float(k['h']),
-            float(k['l'])
-        )
+    topic = msg.get("topic", "")
+    # Filtra solo i messages candle.*
+    if topic.startswith("candle"):
+        for d in msg.get("data", []):
+            pair      = d["symbol"]
+            close_p   = float(d["close"])
+            high_p    = float(d["high"])
+            low_p     = float(d["low"])
+            # ora processa con i tuoi array e indicatori
+            process_data(pair, close_p, high_p, low_p)
 
 def on_open(ws):
-    sub = {"op":"subscribe","args":[f"kline.3.{p}" for p in pairs]}
-    ws.send(json.dumps(sub))
+  print("✅ Connessione aperta.")
+    pairs = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
+    subscribe = {
+      "op": "subscribe",
+      "args": [f"candle.3.{p}" for p in pairs]
+    }
+    ws.send(json.dumps(subscribe))
+    print(f"📡 Sottoscritto ai candles 3m per: {', '.join(pairs)}")
 
 def on_error(ws, error):
     logging.error("WebSocket error: %s", error)

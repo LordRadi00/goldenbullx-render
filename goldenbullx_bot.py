@@ -2,7 +2,7 @@ import logging
 import random
 import os
 from telegram import Bot
-from telegram.ext import ApplicationBuilder
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 from apscheduler.schedulers.background import BackgroundScheduler
 import requests
 import pandas as pd

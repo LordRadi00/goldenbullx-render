@@ -12,6 +12,15 @@ import pandas_ta as ta  # Sostituire TA-Lib con pandas_ta
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = "-4655187396"  # Replace with your Telegram chat or user ID
 
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    welcome_message = (
+        "🎉 Benvenuto in GoldenBullX! 🎉\n"
+        "Rimani in attesa per l'arrivo dei primi segnali di trading.\n"
+        "Preparati ad agire sui segnali AI in tempo reale!\n\n"
+        "👉 Scrivi /signal per ricevere il primo segnale."
+    )
+    await update.message.reply_text(welcome_message)
+
 # === LOGGING SETUP ===
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 

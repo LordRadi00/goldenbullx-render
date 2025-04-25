@@ -10,7 +10,7 @@ import pandas_ta as ta  # Sostituire TA-Lib con pandas_ta
 
 # === CONFIG ===
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = "@GoldenBullX_Bot"  # Replace with your Telegram chat or user ID
+CHAT_ID = "-4655187396"  # Replace with your Telegram chat or user ID
 
 # === LOGGING SETUP ===
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -135,11 +135,11 @@ async def send_signal():
                 "👉 Vuoi eseguire l’operazione?"
             )
             # Invia il segnale via Telegram
-            await bot.send_message(chat_id=
+            await bot.send_message(chat_id=-4655187396)
 
 # === SCHEDULER PER ESEGUIRE OGNI 10 SECONDI ===
 scheduler = BackgroundScheduler()
-scheduler.add_job(send_signal, 'interval', seconds=10)  # Controlla ogni 10 secondi
+scheduler.add_job(send_signal, 'interval', seconds=1)  # Controlla ogni 1 secondo
 scheduler.start()
 
 # === MAIN ===

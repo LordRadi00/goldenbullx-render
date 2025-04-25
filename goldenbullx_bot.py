@@ -53,21 +53,31 @@ def on_close(ws, code, msg):
 # === PROCESSARE I DATI ===
 # Mantenere i prezzi di chiusura per ogni simbolo
 close_prices = {'BTCUSDT': [], 'ETHUSDT': [], 'SOLUSDT': []}
+high_prices = {'BTCUSDT': [], 'ETHUSDT': [], 'SOLUSDT': []}
+low_prices = {'BTCUSDT': [], 'ETHUSDT': [], 'SOLUSDT': []}
 
-def process_data(pair, close_price):
-    # Aggiungi i prezzi di chiusura
+def process_data(pair, close_price, high_price, low_price):
+    # Aggiungi i prezzi di chiusura, massimo e minimo
     close_prices[pair].append(close_price)
+    high_prices[pair].append(high_price)
+    low_prices[pair].append(low_price)
     
     # Limitiamo il numero di prezzi conservati (es. ultimi 100)
     if len(close_prices[pair]) > 100:
         close_prices[pair].pop(0)
+        high_prices[pair].pop(0)
+        low_prices[pair].pop(0)
     
-   df = pd.DataFrame(data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'quote_asset_volume', 'number_of_trades', 'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'])
+    # Crea il dataframe con close, high e low per calcolare gli indicatori
+    df = pd.DataFrame({
+        'close': close_prices[pair],
+        'high': high_prices[pair],
+        'low': low_prices[pair]
+    })
+    
     df['close'] = pd.to_numeric(df['close'])
     df['high'] = pd.to_numeric(df['high'])
     df['low'] = pd.to_numeric(df['low'])
-    
-    return df
 
 # === FUNZIONE PER CALCOLARE GLI INDICATORI ===
 def calculate_indicators(data):

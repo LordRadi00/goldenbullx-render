@@ -124,9 +124,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await update.message.reply_text(welcome)
 
-# === MAIN ===
 if __name__ == "__main__":
-    # 1) Avvia WebSocket in thread
+    # 1) Avvia WebSocket in background
     threading.Thread(
         target=lambda: websocket.WebSocketApp(
             "wss://stream.bybit.com/v5/public/linear",
@@ -134,12 +133,16 @@ if __name__ == "__main__":
             on_message=on_message,
             on_error=on_error,
             on_close=on_close
-        ).run_forever(),
+        ).run_forever(
+            ping_interval=20,    # keepalive
+            ping_timeout=10,     # attesa pong
+            reconnect=True       # ricollegati automaticamente
+        ),
         daemon=True
     ).start()
 
-    # 2) Avvia bot Telegram
+    # 2) Avvia il bot Telegram in polling
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
-    print("🤖 GoldenBullX attivo.")
+    print("🤖 GoldenBullX Worker attivo.")
     app.run_polling()

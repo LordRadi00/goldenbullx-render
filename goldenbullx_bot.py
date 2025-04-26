@@ -9,7 +9,7 @@ import pandas as pd
 import pandas_ta as ta
 import websocket
 from telegram import Bot, Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes,CallbackQueryHandler
 
 # === CONFIG ===
 BOT_TOKEN = os.getenv("BOT_TOKEN")

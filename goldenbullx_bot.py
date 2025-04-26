@@ -45,23 +45,32 @@ def calculate_indicators(df: pd.DataFrame) -> pd.DataFrame:
 
 # === GENERAZIONE SEGNALE ===
 def generate_signal(df: pd.DataFrame, pair: str):
+    # 1) prendi l’ultima riga
     last = df.iloc[-1]
+
+    # 2) recent low delle ultime 2 barre
     recent_low = df['low'].iloc[-2:].min()
+
+    # 3) prendi le due chiusure precedenti e calcola il “sweep”
+    prev_closes = df['close'].iloc[-3:-1]
     sweep_2bar = last['close'] > prev_closes.max()
+
+    # 4) finalmente costruisci la condizione LONG
     long_condition = (
         last['close'] > recent_low and
-        # dentro generate_signal, subito prima di `long_condition`
-        prev2 = df['low'].iloc[-3:-1]  # le due barre prima dell’ultima
         sweep_2bar and
         last['close'] > last['EMA50'] and
         last['ADX'] > 10 and
         last['ATR'] > df['ATR'].rolling(20).mean().iloc[-1] and
         (5 <= last.name.hour < 22)
     )
+
+    # 5) ritorna il segnale
     if long_condition:
         confidence = round(random.uniform(85, 95), 2)
         return "Bullish", confidence
     return "No Signal", 0
+
 
 # === PROCESSAMENTO DATI WS ===
 def process_data(pair, close_p, high_p, low_p):

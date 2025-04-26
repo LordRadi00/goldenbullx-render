@@ -135,7 +135,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(welcome)
     logging.info(f"Comando /start ricevuto da {update.effective_user.id}")
     
-    async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     await q.answer()
     _, pair, conf = q.data.split("|")
@@ -144,6 +145,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"✅ LONG *{pair}* confermato da {user} (confidenza {conf}%)",
         parse_mode="Markdown"
     )
+
 
 if __name__ == "__main__":
     # 1) Avvia WebSocket in background

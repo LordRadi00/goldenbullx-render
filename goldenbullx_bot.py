@@ -45,6 +45,7 @@ def generate_signal(df: pd.DataFrame):
     recent_low = df['low'].iloc[-2:].min()
     long_condition = (
         last['close'] > recent_low and
+        sweep_2bar and
         last['close'] > last['EMA50'] and
         last['ADX'] > 10 and
         last['ATR'] > df['ATR'].rolling(20).mean().iloc[-1] and
@@ -82,8 +83,17 @@ def process_data(pair, close_p, high_p, low_p):
             f"📊 Pair: {pair}\n"
             "⏱ Timeframe: 2m\n\n"
             "👉 Vuoi eseguire l’operazione?"
+       )
+        keyboard = [
+            [InlineKeyboardButton("✅ Conferma LONG", callback_data=f"confirm_long|{pair}|{conf}")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        bot.send_message(
+            chat_id=CHAT_ID,
+            text=text,
+            parse_mode="Markdown",
+            reply_markup=reply_markup,
         )
-        bot.send_message(chat_id=CHAT_ID, text=text, parse_mode="Markdown")
 
 # === CALLBACK WebSocket ===
 def on_message(ws, message):
@@ -99,7 +109,6 @@ def on_message(ws, message):
             # ora processa con i tuoi array e indicatori
             process_data(pair, close_p, high_p, low_p)
           
-
 def on_open(ws):
     print("✅ Connessione aperta.")
     pairs = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
@@ -125,6 +134,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await update.message.reply_text(welcome)
     logging.info(f"Comando /start ricevuto da {update.effective_user.id}")
+    
+    async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    await q.answer()
+    _, pair, conf = q.data.split("|")
+    user = q.from_user.first_name
+    await q.edit_message_text(
+        f"✅ LONG *{pair}* confermato da {user} (confidenza {conf}%)",
+        parse_mode="Markdown"
+    )
 
 if __name__ == "__main__":
     # 1) Avvia WebSocket in background

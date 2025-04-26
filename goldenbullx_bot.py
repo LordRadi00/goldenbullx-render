@@ -98,8 +98,7 @@ def on_message(ws, message):
             low_p     = float(d["low"])
             # ora processa con i tuoi array e indicatori
             process_data(pair, close_p, high_p, low_p)
-             except Exception as e:
-        logging.error(f"Errore durante il processamento messaggio WebSocket: {e}")
+          
 
 def on_open(ws):
     print("✅ Connessione aperta.")

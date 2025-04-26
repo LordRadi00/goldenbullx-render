@@ -98,6 +98,8 @@ def on_message(ws, message):
             low_p     = float(d["low"])
             # ora processa con i tuoi array e indicatori
             process_data(pair, close_p, high_p, low_p)
+             except Exception as e:
+        logging.error(f"Errore durante il processamento messaggio WebSocket: {e}")
 
 def on_open(ws):
     print("✅ Connessione aperta.")
@@ -123,6 +125,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "I segnali verranno inviati automaticamente quando la strategia rileva un trend bullish."
     )
     await update.message.reply_text(welcome)
+    logging.info(f"Comando /start ricevuto da {update.effective_user.id}")
 
 if __name__ == "__main__":
     # 1) Avvia WebSocket in background

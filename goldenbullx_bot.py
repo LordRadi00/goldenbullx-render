@@ -25,7 +25,7 @@ logging.basicConfig(
 bot = Bot(token=BOT_TOKEN)
 
 # === COPPIE E STORAGE PREZZI + PYRAMID COUNTER ===
-pairs = ["BTCUSDT", "TAOUSDT", "SOLUSDT", "XRPUSDT]
+pairs = ["BTCUSDT", "TAOUSDT", "SOLUSDT", "XRPUSDT"]
 close_prices = {p: [] for p in pairs}
 high_prices  = {p: [] for p in pairs}
 low_prices   = {p: [] for p in pairs}

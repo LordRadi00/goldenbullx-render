@@ -11,6 +11,7 @@ import websocket
 from telegram import Bot, Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
+
 # === CONFIG ===
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID   = "-4655187396"  # ID del gruppo o chat in cui inviare i messaggi
@@ -29,6 +30,9 @@ pairs = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 close_prices = {p: [] for p in pairs}
 high_prices  = {p: [] for p in pairs}
 low_prices   = {p: [] for p in pairs}
+# contatore di quante volte siamo già entrati LONG per ciascuna pair
+entry_count = {p: 0 for p in pairs}
+
 
 # === CALCOLO INDICATORI ===
 def calculate_indicators(df: pd.DataFrame) -> pd.DataFrame:
@@ -40,11 +44,14 @@ def calculate_indicators(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 # === GENERAZIONE SEGNALE ===
-def generate_signal(df: pd.DataFrame):
+def generate_signal(df: pd.DataFrame, pair: str):
     last = df.iloc[-1]
     recent_low = df['low'].iloc[-2:].min()
+    sweep_2bar = last['close'] > prev_closes.max()
     long_condition = (
         last['close'] > recent_low and
+        # dentro generate_signal, subito prima di `long_condition`
+        prev2 = df['low'].iloc[-3:-1]  # le due barre prima dell’ultima
         sweep_2bar and
         last['close'] > last['EMA50'] and
         last['ADX'] > 10 and
@@ -75,8 +82,9 @@ def process_data(pair, close_p, high_p, low_p):
     # 4) Indicatori
     df = calculate_indicators(df)
     # 5) Segnale e invio
-    signal, conf = generate_signal(df)
-    if signal == "Bullish":
+  
+     if signal == "Bullish" and entry_count[pair] < 2:
+        entry_count[pair] += 1
         text = (
             f"🐂 *Bullish Trend Detected*\n"
             f"🤖 Confidence AI: {conf}%\n"
@@ -94,6 +102,8 @@ def process_data(pair, close_p, high_p, low_p):
             parse_mode="Markdown",
             reply_markup=reply_markup,
         )
+     if signal != "Bullish":
+        entry_count[pair] = 0
 
 # === CALLBACK WebSocket ===
 def on_message(ws, message):
